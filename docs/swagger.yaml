@@ -1,0 +1,477 @@
+definitions:
+  request.CloseTournamentReq:
+    properties:
+      id:
+        type: integer
+    required:
+    - id
+    type: object
+  request.CreateUserRequest:
+    properties:
+      country:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - country
+    - password
+    - username
+    type: object
+  request.StartTournamentReq:
+    properties:
+      id:
+        type: integer
+    required:
+    - id
+    type: object
+  request.UserLoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  response.CloseTournamentResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  response.CreateDailyTournamentResponse:
+    properties:
+      endDate:
+        type: string
+      id:
+        type: integer
+      startDate:
+        type: string
+      status:
+        type: string
+    type: object
+  response.ErrorResponse:
+    properties:
+      description:
+        type: string
+      status:
+        type: integer
+    type: object
+  response.GetActiveTournamentResponse:
+    properties:
+      endDate:
+        type: string
+      id:
+        type: integer
+      startDate:
+        type: string
+      status:
+        type: string
+    type: object
+  response.LeaderboardEntry:
+    properties:
+      rank:
+        type: integer
+      score:
+        type: integer
+      user_id:
+        type: integer
+    type: object
+  response.StartTournamentResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  response.UserLoginResponse:
+    properties:
+      token:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /internal/tournament/active:
+    get:
+      description: Returns the tournament that is currently marked "active" and within
+        time range.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.GetActiveTournamentResponse'
+        "404":
+          description: No active tournament found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get the currently active tournament
+      tags:
+      - Tournament
+  /internal/tournament/close:
+    post:
+      consumes:
+      - application/json
+      description: Moves a tournament status to "closed".
+      parameters:
+      - description: Tournament ID to close
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/request.CloseTournamentReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CloseTournamentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Tournament Already Ended/Closed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Close a tournament
+      tags:
+      - Tournament
+  /internal/tournament/create-daily:
+    post:
+      consumes:
+      - application/json
+      description: Creates a "planned" tournament for the current day.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.CreateDailyTournamentResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new daily tournament (00:00 - 23:59)
+      tags:
+      - Tournament
+  /internal/tournament/enter:
+    post:
+      description: Joins the currently active tournament if user meets level/coin
+        requirements.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Joined the tournament successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized or invalid user ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden if user level or coins are insufficient
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: No active tournament found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Tournament already ended (if needed)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Enter the active tournament
+      tags:
+      - Tournament
+  /internal/tournament/reward/claim:
+    post:
+      consumes:
+      - application/json
+      description: Fetches all unclaimed rewards for the current user, sums their
+        coin values, updates the user's coin balance, and marks each reward as claimed.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: All rewards claimed successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized or invalid user ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: No unclaimed rewards found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Server error or database failure
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Claim all unclaimed rewards
+      tags:
+      - Tournament
+  /internal/tournament/start:
+    post:
+      consumes:
+      - application/json
+      description: Changes a tournament status from "planned" to "active" (if not
+        ended).
+      parameters:
+      - description: Tournament ID to start
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/request.StartTournamentReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.StartTournamentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Tournament Already Ended/Closed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Start a tournament
+      tags:
+      - Tournament
+  /internal/user:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User object that needs to be created
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/request.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: integer
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Create a new user
+      tags:
+      - User Controller
+  /internal/user/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: User object that needs to be created
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/request.UserLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.UserLoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Login user
+      tags:
+      - User Controller
+  /internal/user/progress:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user progress
+      tags:
+      - User Controller
+  /leaderboard/country/{country}:
+    get:
+      description: Retrieves the top 1000 users from the leaderboard for a specific
+        country.
+      parameters:
+      - description: Country Code (e.g., US, TR, DE)
+        in: path
+        name: country
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/response.LeaderboardEntry'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get Country Leaderboard
+      tags:
+      - Leaderboard
+  /leaderboard/global:
+    get:
+      description: Retrieves the top 1000 users from the global leaderboard.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/response.LeaderboardEntry'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get Global Leaderboard
+      tags:
+      - Leaderboard
+  /leaderboard/user/{userId}/rank:
+    get:
+      description: Retrieves the global rank of a specific user.
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User Rank
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: User Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get User Rank
+      tags:
+      - Leaderboard
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
