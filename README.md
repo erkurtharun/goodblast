@@ -1,4 +1,4 @@
-# GoodBlast Tournament API
+# GoodBlast API
 
 ## Overview
 GoodBlast is a **casual Match-3 game** with a **Tournament System** that allows players to compete daily and track their rankings.
